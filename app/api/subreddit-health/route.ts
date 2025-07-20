@@ -35,16 +35,27 @@ export async function POST(req: NextRequest) {
       ridicule = 0,
       constructive = 0,
       toxic = 0,
+      neutral = 0,
       totalComments = 0,
       totalUpvotes = 0,
       totalDownvotes = 0;
 
     for (const post of posts) {
       if (post.num_comments === 0 && post.ups === 0) ignored++; // consider posts with no comments and no upvotes as ignored
-      totalUpvotes += post.ups;
-      console.log("post.ups", post.ups);
-      console.log("post.downs", post.downs);
-      totalDownvotes += post.downs || 0;
+
+      const ups = post.ups;
+      const ratio = post.upvote_ratio;
+
+      // Estimate downvotes since Reddit API doesn't expose them directly
+      const totalVotes = ratio > 0 ? ups / ratio : ups;
+      const estimatedDowns = Math.max(0, Math.round(totalVotes - ups));
+
+      totalUpvotes += ups;
+      totalDownvotes += estimatedDowns;
+
+      console.log("post.ups", ups);
+      console.log("post.upvote_ratio", ratio);
+      console.log("estimated downs", estimatedDowns);
 
       const comments = await (post.expandReplies({
         limit: MAX_COMMENTS,
@@ -55,6 +66,7 @@ export async function POST(req: NextRequest) {
       ridicule += commentAnalysis.ridicule;
       constructive += commentAnalysis.constructive;
       toxic += commentAnalysis.toxic;
+      neutral += commentAnalysis.neutral || 0;
       totalComments += commentAnalysis.total;
     }
 
@@ -70,6 +82,7 @@ export async function POST(req: NextRequest) {
         ridicule,
         constructive,
         toxic,
+        neutral,
         total: totalComments,
       },
       overallMood: getOverallMood(constructive, toxic),
@@ -102,6 +115,7 @@ async function analyzeComments(comments: Comment[]) {
       ridicule: 0,
       constructive: 0,
       toxic: 0,
+      neutral: 0,
       total: 0,
     };
   }
@@ -182,10 +196,14 @@ async function analyzeComments(comments: Comment[]) {
     if (analysis.mood === "sarcastic") ridicule++;
   }
 
+  // Calculate neutral comments (everything that wasn't categorized above)
+  const neutral = comments.length - (constructive + toxic + ridicule);
+
   return {
     ridicule,
     constructive,
     toxic,
+    neutral,
     total: comments.length,
   };
 }
@@ -207,10 +225,14 @@ function fallbackAnalysis(comments: Comment[]) {
     if (text.includes("idiot") || text.includes("shut up")) toxic++;
   }
 
+  // Calculate neutral comments for fallback analysis
+  const neutral = comments.length - (constructive + toxic + ridicule);
+
   return {
     ridicule,
     constructive,
     toxic,
+    neutral,
     total: comments.length,
   };
 }

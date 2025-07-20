@@ -34,6 +34,7 @@ interface HealthData {
     ridicule: number;
     constructive: number;
     toxic: number;
+    neutral: number;
     total: number;
   };
   overallMood: string;
@@ -355,6 +356,24 @@ export default function SubredditAnalyzer({
                       fontWeight="bold"
                     >
                       {data.commentStats.toxic}
+                    </Badge>
+                  </VStack>
+                  <VStack px={6} py={4} flex={1} align="center" gap={2}>
+                    <HStack gap={1} align="center">
+                      <Text fontWeight="medium">Neutral</Text>
+                      <ToggleTip content="Comments that are neither particularly positive nor negative, including neutral responses, off-topic remarks, and general discussion.">
+                        <Button size="xs" variant="ghost">
+                          <LuInfo />
+                        </Button>
+                      </ToggleTip>
+                    </HStack>
+                    <Badge
+                      colorPalette="gray"
+                      size="lg"
+                      fontSize="lg"
+                      fontWeight="bold"
+                    >
+                      {data.commentStats.neutral}
                     </Badge>
                   </VStack>
                 </HStack>
