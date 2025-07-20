@@ -58,7 +58,7 @@ export default function SubredditAnalyzer({
   autoAnalyze = false,
 }: SubredditAnalyzerProps) {
   const [subreddit, setSubreddit] = useState(initialSubreddit);
-  const [filter, setFilter] = useState("best");
+  const [filter, setFilter] = useState("hot");
   const [data, setData] = useState<HealthData | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");

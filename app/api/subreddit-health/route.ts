@@ -10,7 +10,7 @@ const reddit = new snoowrap({
   password: process.env.REDDIT_PASSWORD!,
 });
 
-const MAX_POSTS = 15;
+const MAX_POSTS = 10;
 const MAX_COMMENTS = 10;
 
 export async function POST(req: NextRequest) {
