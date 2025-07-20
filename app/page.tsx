@@ -1,103 +1,355 @@
-import Image from "next/image";
+"use client";
+
+import { useState } from "react";
+import {
+  Button,
+  Field,
+  Input,
+  Card,
+  Text,
+  Badge,
+  VStack,
+  HStack,
+  Stat,
+  Select,
+  createListCollection,
+  Heading,
+} from "@chakra-ui/react";
+import { ToggleTip } from "@/components/ui/toggle-tip";
+import { ColorModeButton } from "@/components/ui/color-mode";
+import {
+  LuInfo,
+  LuFlame,
+  LuStar,
+  LuThumbsUp,
+  LuMinus,
+  LuX,
+} from "react-icons/lu";
+
+interface HealthData {
+  ignoredPercent: number;
+  avgUpvotes: number;
+  avgDownvotes: number;
+  upvoteRatio: number;
+  commentStats: {
+    ridicule: number;
+    constructive: number;
+    toxic: number;
+    total: number;
+  };
+  overallMood: string;
+}
+
+const filterOptions = createListCollection({
+  items: [
+    { label: "Hot", value: "hot", icon: LuFlame },
+    { label: "Best", value: "best", icon: LuStar },
+  ],
+});
 
 export default function Home() {
-  return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+  const [subreddit, setSubreddit] = useState("");
+  const [filter, setFilter] = useState("best");
+  const [data, setData] = useState<HealthData | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!subreddit.trim()) return;
+
+    setLoading(true);
+    setError("");
+    setData(null);
+
+    try {
+      const response = await fetch("/api/subreddit-health", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ subreddit: subreddit.trim(), filter }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to analyze subreddit");
+      }
+
+      const result = await response.json();
+      setData(result);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "An error occurred");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getMoodColor = (mood: string) => {
+    switch (mood) {
+      case "supportive":
+        return "green";
+      case "mixed":
+        return "yellow";
+      case "hostile":
+        return "red";
+      default:
+        return "gray";
+    }
+  };
+
+  const getMoodIcon = (mood: string) => {
+    switch (mood) {
+      case "supportive":
+        return LuThumbsUp;
+      case "mixed":
+        return LuMinus;
+      case "hostile":
+        return LuX;
+      default:
+        return LuInfo;
+    }
+  };
+
+  return (
+    <div className="font-sans grid grid-rows-[20px_1fr_20px] justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
+      {/* Dark Mode Toggle - Top Right Corner */}
+      <div className="fixed top-4 right-4 z-50">
+        <ColorModeButton />
+      </div>
+
+      <main className="flex flex-col gap-[10px] row-start-2 items-center sm:items-start max-w-2xl w-full">
+        <div className=" w-full">
+          <Heading size="4xl" mb={0} fontWeight="bold">
+            {subreddit.trim() ? `Rate r/${subreddit.trim()}` : "Rate Reddit"}
+          </Heading>
+          <Text fontSize="lg" color="gray.600" mb={4}>
+            Analyze subreddit health and community sentiment
+          </Text>
         </div>
+
+        <form onSubmit={handleSubmit} className="w-full">
+          <VStack gap={4} align="stretch">
+            <HStack gap={4} align="end">
+              <Field.Root flex={1}>
+                <Field.Label>Subreddit</Field.Label>
+                <Input
+                  value={subreddit}
+                  onChange={(e) => setSubreddit(e.target.value)}
+                  placeholder="Enter subreddit name (e.g., javascript)"
+                />
+              </Field.Root>
+              <Field.Root w="100px">
+                <Select.Root
+                  collection={filterOptions}
+                  value={[filter]}
+                  onValueChange={(details) => setFilter(details.value[0])}
+                >
+                  <Select.Label>Filter</Select.Label>
+                  <Select.Control>
+                    <Select.Trigger>
+                      <HStack gap={2}>
+                        {(() => {
+                          const selectedOption = filterOptions.items.find(
+                            (item) => item.value === filter
+                          );
+                          const IconComponent = selectedOption?.icon;
+                          return IconComponent ? (
+                            <IconComponent size={16} />
+                          ) : null;
+                        })()}
+                        <Select.ValueText placeholder="Select filter" />
+                      </HStack>
+                    </Select.Trigger>
+                    <Select.IndicatorGroup>
+                      <Select.Indicator />
+                    </Select.IndicatorGroup>
+                  </Select.Control>
+                  <Select.Positioner>
+                    <Select.Content>
+                      {filterOptions.items.map((option) => (
+                        <Select.Item item={option} key={option.value}>
+                          <HStack gap={2}>
+                            <option.icon size={16} />
+                            {option.label}
+                          </HStack>
+                          <Select.ItemIndicator />
+                        </Select.Item>
+                      ))}
+                    </Select.Content>
+                  </Select.Positioner>
+                </Select.Root>
+              </Field.Root>
+            </HStack>
+            <Button
+              type="submit"
+              loading={loading}
+              disabled={!subreddit.trim()}
+              mb={8}
+            >
+              Check Health Rate
+            </Button>
+          </VStack>
+        </form>
+
+        {error && (
+          <Card.Root bg="red.50" borderColor="red.200">
+            <Card.Body>
+              <Text color="red.600">{error}</Text>
+            </Card.Body>
+          </Card.Root>
+        )}
+
+        {data && (
+          <Card.Root>
+            <Card.Header>
+              <HStack justify="space-between" align="center">
+                <Text fontSize="xl" fontWeight="bold">
+                  r/{subreddit} Health Report
+                </Text>
+                <Badge
+                  colorPalette={getMoodColor(data.overallMood)}
+                  size="lg"
+                  px={4}
+                  py={2}
+                  fontSize="md"
+                  fontWeight="semibold"
+                  textTransform="capitalize"
+                >
+                  <HStack gap={2} align="center">
+                    {(() => {
+                      const IconComponent = getMoodIcon(data.overallMood);
+                      return <IconComponent size={16} />;
+                    })()}
+                    {data.overallMood}
+                  </HStack>
+                </Badge>
+              </HStack>
+            </Card.Header>
+            <Card.Body>
+              <VStack gap={6} align="stretch">
+                <HStack
+                  gap={0}
+                  wrap="wrap"
+                  divideX="1px"
+                  divideColor="border.muted"
+                >
+                  <Stat.Root px={6} py={2}>
+                    <HStack gap={1} align="center">
+                      <Stat.Label>Posts Ignored</Stat.Label>
+                      <ToggleTip content="Percentage of posts that received little to no engagement (0 or very low scores), suggesting the community showed minimal interest.">
+                        <Button size="xs" variant="ghost">
+                          <LuInfo />
+                        </Button>
+                      </ToggleTip>
+                    </HStack>
+                    <Stat.ValueText>{data.ignoredPercent}%</Stat.ValueText>
+                  </Stat.Root>
+                  <Stat.Root px={6} py={2}>
+                    <HStack gap={1} align="center">
+                      <Stat.Label>Avg Upvotes</Stat.Label>
+                      <ToggleTip content="Average number of upvotes received per post in the analyzed sample.">
+                        <Button size="xs" variant="ghost">
+                          <LuInfo />
+                        </Button>
+                      </ToggleTip>
+                    </HStack>
+                    <Stat.ValueText>{data.avgUpvotes}</Stat.ValueText>
+                  </Stat.Root>
+                  <Stat.Root px={6} py={2}>
+                    <HStack gap={1} align="center">
+                      <Stat.Label>Avg Downvotes</Stat.Label>
+                      <ToggleTip content="Average number of downvotes received per post in the analyzed sample.">
+                        <Button size="xs" variant="ghost">
+                          <LuInfo />
+                        </Button>
+                      </ToggleTip>
+                    </HStack>
+                    <Stat.ValueText>{data.avgDownvotes}</Stat.ValueText>
+                  </Stat.Root>
+                  <Stat.Root px={6} py={2}>
+                    <HStack gap={1} align="center">
+                      <Stat.Label>Upvote Ratio</Stat.Label>
+                      <ToggleTip content="Percentage of upvotes relative to total votes (upvotes + downvotes). Higher ratios indicate more positive reception.">
+                        <Button size="xs" variant="ghost">
+                          <LuInfo />
+                        </Button>
+                      </ToggleTip>
+                    </HStack>
+                    <Stat.ValueText>{data.upvoteRatio}%</Stat.ValueText>
+                  </Stat.Root>
+                </HStack>
+
+                <div>
+                  <Text fontSize="lg" fontWeight="semibold" mb={3}>
+                    Comment Analysis ({data.commentStats.total} comments)
+                  </Text>
+                  <HStack
+                    gap={0}
+                    wrap="wrap"
+                    divideX="1px"
+                    divideColor="border.muted"
+                  >
+                    <VStack px={6} py={4} flex={1} align="center" gap={2}>
+                      <HStack gap={1} align="center">
+                        <Text fontWeight="medium">Constructive</Text>
+                        <ToggleTip content="Comments that provide helpful feedback, suggestions, or positive engagement that adds value to the discussion.">
+                          <Button size="xs" variant="ghost">
+                            <LuInfo />
+                          </Button>
+                        </ToggleTip>
+                      </HStack>
+                      <Badge
+                        colorPalette="green"
+                        size="lg"
+                        fontSize="lg"
+                        fontWeight="bold"
+                      >
+                        {data.commentStats.constructive}
+                      </Badge>
+                    </VStack>
+                    <VStack px={6} py={4} flex={1} align="center" gap={2}>
+                      <HStack gap={1} align="center">
+                        <Text fontWeight="medium">Ridicule</Text>
+                        <ToggleTip content="Comments that mock, belittle, or dismiss posts/users in a non-constructive way, but aren't necessarily toxic.">
+                          <Button size="xs" variant="ghost">
+                            <LuInfo />
+                          </Button>
+                        </ToggleTip>
+                      </HStack>
+                      <Badge
+                        colorPalette="yellow"
+                        size="lg"
+                        fontSize="lg"
+                        fontWeight="bold"
+                      >
+                        {data.commentStats.ridicule}
+                      </Badge>
+                    </VStack>
+                    <VStack px={6} py={4} flex={1} align="center" gap={2}>
+                      <HStack gap={1} align="center">
+                        <Text fontWeight="medium">Toxic</Text>
+                        <ToggleTip content="Comments containing harassment, hate speech, personal attacks, or other harmful content that violates community standards.">
+                          <Button size="xs" variant="ghost">
+                            <LuInfo />
+                          </Button>
+                        </ToggleTip>
+                      </HStack>
+                      <Badge
+                        colorPalette="red"
+                        size="lg"
+                        fontSize="lg"
+                        fontWeight="bold"
+                      >
+                        {data.commentStats.toxic}
+                      </Badge>
+                    </VStack>
+                  </HStack>
+                </div>
+              </VStack>
+            </Card.Body>
+          </Card.Root>
+        )}
       </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
     </div>
   );
 }
