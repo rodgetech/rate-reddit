@@ -83,7 +83,7 @@ export type OpenRouterRequestParams = {
   transforms?: string[];
   models?: string[];
   route?: "fallback";
-  provider?: any; // Provider preferences type
+  // provider?: any; // Provider preferences type
   user?: string;
 };
 
