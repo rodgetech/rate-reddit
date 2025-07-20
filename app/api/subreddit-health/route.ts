@@ -43,6 +43,7 @@ export async function POST(req: NextRequest) {
       if (post.num_comments === 0 && post.ups === 0) ignored++; // consider posts with no comments and no upvotes as ignored
       totalUpvotes += post.ups;
       console.log("post.ups", post.ups);
+      console.log("post.downs", post.downs);
       totalDownvotes += post.downs || 0;
 
       const comments = await (post.expandReplies({
@@ -164,7 +165,6 @@ async function analyzeComments(comments: Comment[]) {
   let analysisResults;
   try {
     analysisResults = JSON.parse(response || "{}");
-    console.log("analysisResults", analysisResults);
   } catch (error) {
     console.error("Failed to parse AI response:", error);
     // Fallback to simple keyword analysis
