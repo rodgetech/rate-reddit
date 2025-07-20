@@ -88,7 +88,13 @@ export async function POST(req: NextRequest) {
       overallMood: getOverallMood(constructive, toxic),
     };
 
-    return NextResponse.json(data);
+    // Generate Community Vibe Summary
+    const vibeSummary = await generateCommunityVibeSummary(subreddit, data);
+
+    return NextResponse.json({
+      ...data,
+      vibeSummary,
+    });
   } catch (err) {
     console.error(err);
     return NextResponse.json(
@@ -235,4 +241,68 @@ function fallbackAnalysis(comments: Comment[]) {
     neutral,
     total: comments.length,
   };
+}
+
+interface AnalyticsData {
+  ignoredPercent: number;
+  avgUpvotes: number;
+  avgDownvotes: number;
+  upvoteRatio: number;
+  commentStats: {
+    ridicule: number;
+    constructive: number;
+    toxic: number;
+    neutral: number;
+    total: number;
+  };
+  overallMood: string;
+}
+
+async function generateCommunityVibeSummary(
+  subreddit: string,
+  data: AnalyticsData
+) {
+  try {
+    const response = await generateText({
+      model: "google/gemini-2.5-flash",
+      temperature: 0.4,
+      messages: [
+        {
+          role: "system",
+          content: `
+            You are an expert community analyst.  
+            Generate a concise summary of a subreddit's community vibe based on the provided metrics.  
+
+            Example Output 1:  
+            This subreddit feels mostly supportive with a high level of constructive feedback and low ridicule. Posts are rarely ignored, and engagement is healthy relative to its size.
+
+            Example Output 2:  
+            The community is somewhat active, but replies can be hit or miss. While there's some useful feedback, sarcasm and off-topic comments show up regularly. A mixed bag overall.
+
+            Example Output 3:  
+            This subreddit leans hostile. Many comments are mocking or dismissive, and constructive discussion is rare. New posts often go unnoticed or are met with negativity.
+
+          `,
+        },
+        {
+          role: "user",
+          content: `Analyze r/${subreddit} with these metrics:
+            - ${data.ignoredPercent}% of posts are ignored (no comments/upvotes)
+            - Average ${data.avgUpvotes} upvotes, ${data.avgDownvotes} downvotes per post
+            - ${data.upvoteRatio}% upvote ratio
+            - Comments: ${data.commentStats.constructive} constructive, ${data.commentStats.toxic} toxic, ${data.commentStats.ridicule} ridicule, ${data.commentStats.neutral} neutral out of ${data.commentStats.total} total
+            - Overall mood: ${data.overallMood}
+            .`,
+        },
+      ],
+    });
+
+    return (
+      response ||
+      "This community shows typical engagement patterns for its size and topic focus."
+    );
+  } catch (error) {
+    console.error("Failed to generate vibe summary:", error);
+    return "This community shows typical engagement patterns for its size and topic focus.";
+  }
 }

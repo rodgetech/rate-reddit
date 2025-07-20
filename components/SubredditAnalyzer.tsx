@@ -38,6 +38,7 @@ interface HealthData {
     total: number;
   };
   overallMood: string;
+  vibeSummary?: string;
 }
 
 interface SubredditAnalyzerProps {
@@ -242,6 +243,35 @@ export default function SubredditAnalyzer({
           </Card.Header>
           <Card.Body>
             <VStack gap={6} align="stretch">
+              {data.vibeSummary && (
+                <Card.Root
+                  bg="blue.50"
+                  borderColor="blue.200"
+                  borderWidth="1px"
+                >
+                  <Card.Body py={4}>
+                    <VStack gap={2} align="start">
+                      <HStack gap={2} align="center">
+                        <Text
+                          fontSize="md"
+                          fontWeight="semibold"
+                          color="blue.700"
+                        >
+                          🌟 Community Vibe Summary
+                        </Text>
+                      </HStack>
+                      <Text
+                        fontSize="md"
+                        color="blue.800"
+                        lineHeight="relaxed"
+                        fontStyle="italic"
+                      >
+                        &ldquo;{data.vibeSummary}&rdquo;
+                      </Text>
+                    </VStack>
+                  </Card.Body>
+                </Card.Root>
+              )}
               <HStack
                 gap={0}
                 wrap="wrap"
