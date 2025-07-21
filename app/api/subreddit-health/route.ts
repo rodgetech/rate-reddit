@@ -48,6 +48,12 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(result);
   } catch (err) {
     console.error(err);
+
+    // Check if this is a "subreddit does not exist" error
+    if (err instanceof Error && err.message.includes("does not exist")) {
+      return NextResponse.json({ error: err.message }, { status: 404 });
+    }
+
     return NextResponse.json(
       { error: "Failed to analyze subreddit" },
       { status: 500 }
@@ -59,10 +65,24 @@ async function analyzeSubredditHealth(subreddit: string, filter: string) {
   const subredditObj = reddit.getSubreddit(subreddit);
   let posts;
 
-  if (filter === "best") {
-    posts = await subredditObj.getTop({ limit: MAX_POSTS, time: "week" });
-  } else {
-    posts = await subredditObj.getHot({ limit: MAX_POSTS });
+  try {
+    if (filter === "best") {
+      posts = await subredditObj.getTop({ limit: MAX_POSTS, time: "week" });
+    } else {
+      posts = await subredditObj.getHot({ limit: MAX_POSTS });
+    }
+  } catch (error: unknown) {
+    const errorObj = error as { statusCode?: number; message?: string };
+    if (
+      errorObj.statusCode === 404 ||
+      errorObj.message?.includes("404") ||
+      errorObj.message?.includes("not found") ||
+      errorObj.message?.includes("Forbidden")
+    ) {
+      throw new Error(`Subreddit r/${subreddit} does not exist`);
+    }
+    // Re-throw other errors
+    throw error;
   }
 
   let ignored = 0,
