@@ -10,10 +10,12 @@ import {
   Badge,
   VStack,
   HStack,
+  Stack,
   Stat,
   Select,
   createListCollection,
   Heading,
+  Box,
 } from "@chakra-ui/react";
 import { ToggleTip } from "@/components/ui/toggle-tip";
 import {
@@ -132,20 +134,25 @@ export default function SubredditAnalyzer({
   };
 
   return (
-    <div className="w-full">
-      <div className="w-full">
+    <Box w="full" px={{ base: 4, md: 0 }}>
+      <Box w="full">
         <Heading size="4xl" mb={0} fontWeight="bold">
           {subreddit.trim() ? `Rate r/${subreddit.trim()}` : "Rate Reddit"}
         </Heading>
         <Text fontSize="lg" color="gray.600" mb={4}>
           Analyze subreddit health and community sentiment
         </Text>
-      </div>
+      </Box>
 
       <form onSubmit={handleSubmit} className="w-full">
         <VStack gap={4} align="stretch">
-          <HStack gap={4} align="end">
-            <Field.Root flex={1}>
+          <Stack
+            gap={4}
+            align={{ base: "stretch", md: "end" }}
+            direction={{ base: "column", md: "row" }}
+            w="full"
+          >
+            <Field.Root flex={{ base: "unset", md: 1 }} w="full">
               <Field.Label>Subreddit</Field.Label>
               <Input
                 value={subreddit}
@@ -153,7 +160,7 @@ export default function SubredditAnalyzer({
                 placeholder="Enter subreddit name (e.g., javascript)"
               />
             </Field.Root>
-            <Field.Root w="100px">
+            <Field.Root w={{ base: "full", md: "130px" }}>
               <Select.Root
                 collection={filterOptions}
                 value={[filter]}
@@ -194,7 +201,7 @@ export default function SubredditAnalyzer({
                 </Select.Positioner>
               </Select.Root>
             </Field.Root>
-          </HStack>
+          </Stack>
           <Button
             type="submit"
             loading={loading}
@@ -412,6 +419,6 @@ export default function SubredditAnalyzer({
           </Card.Body>
         </Card.Root>
       )}
-    </div>
+    </Box>
   );
 }
