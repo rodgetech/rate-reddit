@@ -303,7 +303,7 @@ export default function SubredditAnalyzer({
                 <Stat.Root px={6} py={2}>
                   <HStack gap={1} align="center">
                     <Stat.Label>Avg Downvotes</Stat.Label>
-                    <ToggleTip content="Average number of downvotes received per post in the analyzed sample.">
+                    <ToggleTip content="Average number of downvotes received per post in the analyzed sample (Estimated from upvote ratio).">
                       <Button size="xs" variant="ghost">
                         <LuInfo />
                       </Button>

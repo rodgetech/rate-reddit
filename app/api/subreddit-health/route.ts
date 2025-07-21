@@ -1,6 +1,7 @@
 import { generateText } from "@/lib/openrouter";
 import { NextRequest, NextResponse } from "next/server";
 import snoowrap from "snoowrap";
+import { kv } from "@vercel/kv";
 
 const reddit = new snoowrap({
   userAgent: "SubHealthChecker/1.0",
@@ -10,8 +11,12 @@ const reddit = new snoowrap({
   password: process.env.REDDIT_PASSWORD!,
 });
 
-const MAX_POSTS = 10;
+const MAX_POSTS = 15;
 const MAX_COMMENTS = 10;
+
+// Cache TTL in seconds
+const CACHE_TTL = 30 * 60; // 30 minutes
+const POST_CACHE_TTL = 60 * 60; // 1 hour for individual posts
 
 export async function POST(req: NextRequest) {
   const body = await req.json();
@@ -22,79 +27,25 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const subredditObj = reddit.getSubreddit(subreddit);
-    let posts;
+    // Check cache first
+    const cacheKey = `subreddit_health:${subreddit}:${filter}`;
+    const cachedResult = await kv.get(cacheKey);
 
-    if (filter === "best") {
-      posts = await subredditObj.getTop({ limit: MAX_POSTS, time: "week" });
-    } else {
-      posts = await subredditObj.getHot({ limit: MAX_POSTS });
+    if (cachedResult) {
+      console.log(`Cache hit for ${cacheKey}`);
+      return NextResponse.json(cachedResult);
     }
 
-    let ignored = 0,
-      ridicule = 0,
-      constructive = 0,
-      toxic = 0,
-      neutral = 0,
-      totalComments = 0,
-      totalUpvotes = 0,
-      totalDownvotes = 0;
+    console.log(`Cache miss for ${cacheKey}, fetching from Reddit...`);
 
-    for (const post of posts) {
-      if (post.num_comments === 0 && post.ups === 0) ignored++; // consider posts with no comments and no upvotes as ignored
+    // Fetch and analyze subreddit data
+    const result = await analyzeSubredditHealth(subreddit, filter);
 
-      const ups = post.ups;
-      const ratio = post.upvote_ratio;
+    // Cache the result
+    await kv.setex(cacheKey, CACHE_TTL, result);
+    console.log(`Cached result for ${cacheKey} with TTL ${CACHE_TTL}s`);
 
-      // Estimate downvotes since Reddit API doesn't expose them directly
-      const totalVotes = ratio > 0 ? ups / ratio : ups;
-      const estimatedDowns = Math.max(0, Math.round(totalVotes - ups));
-
-      totalUpvotes += ups;
-      totalDownvotes += estimatedDowns;
-
-      console.log("post.ups", ups);
-      console.log("post.upvote_ratio", ratio);
-      console.log("estimated downs", estimatedDowns);
-
-      const comments = await (post.expandReplies({
-        limit: MAX_COMMENTS,
-        depth: 1,
-      }) as Promise<{ comments: Comment[] }>);
-      const commentAnalysis = await analyzeComments(comments.comments);
-
-      ridicule += commentAnalysis.ridicule;
-      constructive += commentAnalysis.constructive;
-      toxic += commentAnalysis.toxic;
-      neutral += commentAnalysis.neutral || 0;
-      totalComments += commentAnalysis.total;
-    }
-
-    const data = {
-      ignoredPercent: Math.round((ignored / posts.length) * 100),
-      avgUpvotes: Math.round(totalUpvotes / posts.length),
-      avgDownvotes: Math.round(totalDownvotes / posts.length),
-      upvoteRatio:
-        totalUpvotes + totalDownvotes > 0
-          ? Math.round((totalUpvotes / (totalUpvotes + totalDownvotes)) * 100)
-          : 0,
-      commentStats: {
-        ridicule,
-        constructive,
-        toxic,
-        neutral,
-        total: totalComments,
-      },
-      overallMood: getOverallMood(constructive, toxic),
-    };
-
-    // Generate Community Vibe Summary
-    const vibeSummary = await generateCommunityVibeSummary(subreddit, data);
-
-    return NextResponse.json({
-      ...data,
-      vibeSummary,
-    });
+    return NextResponse.json(result);
   } catch (err) {
     console.error(err);
     return NextResponse.json(
@@ -102,6 +53,97 @@ export async function POST(req: NextRequest) {
       { status: 500 }
     );
   }
+}
+
+async function analyzeSubredditHealth(subreddit: string, filter: string) {
+  const subredditObj = reddit.getSubreddit(subreddit);
+  let posts;
+
+  if (filter === "best") {
+    posts = await subredditObj.getTop({ limit: MAX_POSTS, time: "week" });
+  } else {
+    posts = await subredditObj.getHot({ limit: MAX_POSTS });
+  }
+
+  let ignored = 0,
+    ridicule = 0,
+    constructive = 0,
+    toxic = 0,
+    neutral = 0,
+    totalComments = 0,
+    totalUpvotes = 0,
+    totalDownvotes = 0;
+
+  for (const post of posts) {
+    if (post.num_comments === 0 && post.ups === 0) ignored++; // consider posts with no comments and no upvotes as ignored
+
+    const ups = post.ups;
+    const ratio = post.upvote_ratio;
+
+    // Estimate downvotes since Reddit API doesn't expose them directly
+    const totalVotes = ratio > 0 ? ups / ratio : ups;
+    const estimatedDowns = Math.max(0, Math.round(totalVotes - ups));
+
+    totalUpvotes += ups;
+    totalDownvotes += estimatedDowns;
+
+    // Check if we have cached comment analysis for this post
+    const postCacheKey = `post_comments:${post.id}`;
+    let commentAnalysis = (await kv.get(postCacheKey)) as {
+      ridicule: number;
+      constructive: number;
+      toxic: number;
+      neutral: number;
+      total: number;
+    } | null;
+
+    if (!commentAnalysis) {
+      console.log(`Cache miss for post ${post.id}, analyzing comments...`);
+      const comments = await (post.expandReplies({
+        limit: MAX_COMMENTS,
+        depth: 1,
+      }) as Promise<{ comments: Comment[] }>);
+      commentAnalysis = await analyzeComments(comments.comments);
+
+      // Cache the comment analysis for this post
+      await kv.setex(postCacheKey, POST_CACHE_TTL, commentAnalysis);
+      console.log(`Cached comment analysis for post ${post.id}`);
+    } else {
+      console.log(`Cache hit for post ${post.id} comment analysis`);
+    }
+
+    ridicule += commentAnalysis.ridicule;
+    constructive += commentAnalysis.constructive;
+    toxic += commentAnalysis.toxic;
+    neutral += commentAnalysis.neutral || 0;
+    totalComments += commentAnalysis.total;
+  }
+
+  const data = {
+    ignoredPercent: Math.round((ignored / posts.length) * 100),
+    avgUpvotes: Math.round(totalUpvotes / posts.length),
+    avgDownvotes: Math.round(totalDownvotes / posts.length),
+    upvoteRatio:
+      totalUpvotes + totalDownvotes > 0
+        ? Math.round((totalUpvotes / (totalUpvotes + totalDownvotes)) * 100)
+        : 0,
+    commentStats: {
+      ridicule,
+      constructive,
+      toxic,
+      neutral,
+      total: totalComments,
+    },
+    overallMood: getOverallMood(constructive, toxic),
+  };
+
+  // Generate Community Vibe Summary
+  const vibeSummary = await generateCommunityVibeSummary(subreddit, data);
+
+  return {
+    ...data,
+    vibeSummary,
+  };
 }
 
 function getOverallMood(constructive: number, toxic: number) {
