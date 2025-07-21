@@ -284,10 +284,17 @@ export default function SubredditAnalyzer({
                 wrap="wrap"
                 divideX="1px"
                 divideColor="border.muted"
+                overflowX="hidden"
               >
-                <Stat.Root px={6} py={2}>
+                <Stat.Root
+                  px={{ base: 3, md: 6 }}
+                  py={2}
+                  minW={{ base: "50%", sm: "auto" }}
+                >
                   <HStack gap={1} align="center">
-                    <Stat.Label>Posts Ignored</Stat.Label>
+                    <Stat.Label fontSize={{ base: "sm", md: "md" }}>
+                      Posts Ignored
+                    </Stat.Label>
                     <ToggleTip content="Percentage of posts that received little to no engagement (0 or very low scores), suggesting the community showed minimal interest.">
                       <Button size="xs" variant="ghost">
                         <LuInfo />
@@ -296,9 +303,15 @@ export default function SubredditAnalyzer({
                   </HStack>
                   <Stat.ValueText>{data.ignoredPercent}%</Stat.ValueText>
                 </Stat.Root>
-                <Stat.Root px={6} py={2}>
+                <Stat.Root
+                  px={{ base: 3, md: 6 }}
+                  py={2}
+                  minW={{ base: "50%", sm: "auto" }}
+                >
                   <HStack gap={1} align="center">
-                    <Stat.Label>Avg Upvotes</Stat.Label>
+                    <Stat.Label fontSize={{ base: "sm", md: "md" }}>
+                      Avg Upvotes
+                    </Stat.Label>
                     <ToggleTip content="Average number of upvotes received per post in the analyzed sample.">
                       <Button size="xs" variant="ghost">
                         <LuInfo />
@@ -307,9 +320,15 @@ export default function SubredditAnalyzer({
                   </HStack>
                   <Stat.ValueText>{data.avgUpvotes}</Stat.ValueText>
                 </Stat.Root>
-                <Stat.Root px={6} py={2}>
+                <Stat.Root
+                  px={{ base: 3, md: 6 }}
+                  py={2}
+                  minW={{ base: "50%", sm: "auto" }}
+                >
                   <HStack gap={1} align="center">
-                    <Stat.Label>Avg Downvotes</Stat.Label>
+                    <Stat.Label fontSize={{ base: "sm", md: "md" }}>
+                      Avg Downvotes
+                    </Stat.Label>
                     <ToggleTip content="Average number of downvotes received per post in the analyzed sample (Estimated from upvote ratio).">
                       <Button size="xs" variant="ghost">
                         <LuInfo />
@@ -318,9 +337,15 @@ export default function SubredditAnalyzer({
                   </HStack>
                   <Stat.ValueText>{data.avgDownvotes}</Stat.ValueText>
                 </Stat.Root>
-                <Stat.Root px={6} py={2}>
+                <Stat.Root
+                  px={{ base: 3, md: 6 }}
+                  py={2}
+                  minW={{ base: "50%", sm: "auto" }}
+                >
                   <HStack gap={1} align="center">
-                    <Stat.Label>Upvote Ratio</Stat.Label>
+                    <Stat.Label fontSize={{ base: "sm", md: "md" }}>
+                      Upvote Ratio
+                    </Stat.Label>
                     <ToggleTip content="Percentage of upvotes relative to total votes (upvotes + downvotes). Higher ratios indicate more positive reception.">
                       <Button size="xs" variant="ghost">
                         <LuInfo />
@@ -340,10 +365,23 @@ export default function SubredditAnalyzer({
                   wrap="wrap"
                   divideX="1px"
                   divideColor="border.muted"
+                  overflowX="hidden"
                 >
-                  <VStack px={6} py={4} flex={1} align="center" gap={2}>
+                  <VStack
+                    px={{ base: 3, md: 6 }}
+                    py={4}
+                    flex={1}
+                    minW={{ base: "50%", sm: "auto" }}
+                    align="center"
+                    gap={2}
+                  >
                     <HStack gap={1} align="center">
-                      <Text fontWeight="medium">Constructive</Text>
+                      <Text
+                        fontWeight="medium"
+                        fontSize={{ base: "sm", md: "md" }}
+                      >
+                        Constructive
+                      </Text>
                       <ToggleTip content="Comments that provide helpful feedback, suggestions, or positive engagement that adds value to the discussion.">
                         <Button size="xs" variant="ghost">
                           <LuInfo />
@@ -359,9 +397,21 @@ export default function SubredditAnalyzer({
                       {data.commentStats.constructive}
                     </Badge>
                   </VStack>
-                  <VStack px={6} py={4} flex={1} align="center" gap={2}>
+                  <VStack
+                    px={{ base: 3, md: 6 }}
+                    py={4}
+                    flex={1}
+                    minW={{ base: "50%", sm: "auto" }}
+                    align="center"
+                    gap={2}
+                  >
                     <HStack gap={1} align="center">
-                      <Text fontWeight="medium">Ridicule</Text>
+                      <Text
+                        fontWeight="medium"
+                        fontSize={{ base: "sm", md: "md" }}
+                      >
+                        Ridicule
+                      </Text>
                       <ToggleTip content="Comments that mock, belittle, or dismiss posts/users in a non-constructive way, but aren't necessarily toxic.">
                         <Button size="xs" variant="ghost">
                           <LuInfo />
@@ -377,9 +427,21 @@ export default function SubredditAnalyzer({
                       {data.commentStats.ridicule}
                     </Badge>
                   </VStack>
-                  <VStack px={6} py={4} flex={1} align="center" gap={2}>
+                  <VStack
+                    px={{ base: 3, md: 6 }}
+                    py={4}
+                    flex={1}
+                    minW={{ base: "50%", sm: "auto" }}
+                    align="center"
+                    gap={2}
+                  >
                     <HStack gap={1} align="center">
-                      <Text fontWeight="medium">Toxic</Text>
+                      <Text
+                        fontWeight="medium"
+                        fontSize={{ base: "sm", md: "md" }}
+                      >
+                        Toxic
+                      </Text>
                       <ToggleTip content="Comments containing harassment, hate speech, personal attacks, or other harmful content that violates community standards.">
                         <Button size="xs" variant="ghost">
                           <LuInfo />
@@ -395,9 +457,21 @@ export default function SubredditAnalyzer({
                       {data.commentStats.toxic}
                     </Badge>
                   </VStack>
-                  <VStack px={6} py={4} flex={1} align="center" gap={2}>
+                  <VStack
+                    px={{ base: 3, md: 6 }}
+                    py={4}
+                    flex={1}
+                    minW={{ base: "50%", sm: "auto" }}
+                    align="center"
+                    gap={2}
+                  >
                     <HStack gap={1} align="center">
-                      <Text fontWeight="medium">Neutral</Text>
+                      <Text
+                        fontWeight="medium"
+                        fontSize={{ base: "sm", md: "md" }}
+                      >
+                        Neutral
+                      </Text>
                       <ToggleTip content="Comments that are neither particularly positive nor negative, including neutral responses, off-topic remarks, and general discussion.">
                         <Button size="xs" variant="ghost">
                           <LuInfo />
