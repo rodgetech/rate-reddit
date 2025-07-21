@@ -1,4 +1,5 @@
 import { HStack, Link } from "@chakra-ui/react";
+import { Analytics } from "@vercel/analytics/next";
 import { ColorModeButton } from "@/components/ui/color-mode";
 import { LuGithub } from "react-icons/lu";
 import { FaXTwitter } from "react-icons/fa6";
@@ -59,6 +60,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
 
       <main className="flex flex-col gap-[10px] row-start-2 items-center sm:items-start max-w-2xl w-full">
         {children}
+        <Analytics />
       </main>
     </div>
   );
